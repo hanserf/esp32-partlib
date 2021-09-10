@@ -1,5 +1,5 @@
 set(COMPONENT_SRCS "my_provisioning.c")
 set(COMPONENT_ADD_INCLUDEDIRS . )
 set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components/qrcode)
-
+set(COMPONENT_REQUIRES "nvs_flash" )
 register_component()
