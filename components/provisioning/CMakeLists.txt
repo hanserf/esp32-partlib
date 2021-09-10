@@ -1,5 +1,5 @@
-idf_component_register(
-    SRCS "my_provisioning.c"
-    INCLUDE_DIRS . 
-    REQUIRES i2cdev log esp_idf_lib_helpers qrcode
-)
+set(COMPONENT_SRCS "my_provisioning.c")
+set(COMPONENT_ADD_INCLUDEDIRS . )
+set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components/qrcode)
+
+register_component()
