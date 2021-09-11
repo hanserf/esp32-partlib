@@ -214,7 +214,7 @@ esp_err_t mcp4728_write_channel_raw(i2c_dev_t *dev,uint8_t ch, uint16_t value)
             value & 0xFF
         };  
 
-        ESP_LOGI(TAG, "Set output value to %x , [0x%x] , [0x%x] ", data[0],data[1],data[2]);
+        ESP_LOGV(TAG, "Set output value of ch %x reg %x to , [0x%x] , [0x%x] ",ch, data[0],data[1],data[2]);
 
         I2C_DEV_TAKE_MUTEX(dev);
         I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, data, 3));

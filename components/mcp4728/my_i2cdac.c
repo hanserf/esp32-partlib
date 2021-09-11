@@ -13,6 +13,9 @@
 #include <mcp4728.h>
 #include <string.h>
 #include "my_i2cdac.h"
+
+//#define CONFIG_MCP4728TEST 1
+
 #define VDD 3.3
 #define ADDR MCP4728A0_I2C_ADDR0
 static i2c_dev_t dev;
@@ -46,7 +49,11 @@ void init_mcp4728(int sda, int scl){
         ESP_ERROR_CHECK(mcp4728_set_power_mode(&dev, true, MCP4728_PM_NORMAL));
         wait_for_eeprom(&dev);
     }
-    xTaskCreate(dac_test_task, "dac_task", configMINIMAL_STACK_SIZE * 3, NULL, 4, dac_task);
+    #ifdef CONFIG_MCP4728TEST
+        xTaskCreate(dac_test_task, "dac_task", configMINIMAL_STACK_SIZE * 3, NULL, 4, dac_task);
+    #endif /* CONFIG_EXAMPLE_PROV_TRANSPORT_BLE */
+
+    
     
 }
 
