@@ -45,19 +45,19 @@ void encoder_task(void *arg)
         switch (e.type)
         {
             case RE_ET_BTN_PRESSED:
-                ESP_LOGI(TAG, "Button pressed");
+                ESP_LOGV(TAG, "Button pressed");
                 event = MYENC_BTN_PUSHED;
                 break;
             case RE_ET_BTN_RELEASED:
-                ESP_LOGI(TAG, "Button released");
+                ESP_LOGV(TAG, "Button released");
                 event = MYENC_BTN_RELEASED;
                 break;
             case RE_ET_BTN_CLICKED:
-                ESP_LOGI(TAG, "Button clicked");
+                ESP_LOGV(TAG, "Button clicked");
                 event = MYENC_BTN_CLICKED;
                 break;
             case RE_ET_BTN_LONG_PRESSED:
-                ESP_LOGI(TAG, "Looooong pressed button");
+                ESP_LOGV(TAG, "Looooong pressed button");
                 event = MYENC_BTN_LONG;
                 break;
             case RE_ET_CHANGED:
@@ -68,7 +68,7 @@ void encoder_task(void *arg)
                 else{
                     event = MYENC_POS_DEC;
                 }
-                ESP_LOGI(TAG, "Value = %d", ctl_d);
+                ESP_LOGV(TAG, "Value = %d", ctl_d);
                 break;
             default:
                 valid = false;
@@ -76,7 +76,7 @@ void encoder_task(void *arg)
         }
         if(valid){
             if(MY_ENC.event_callback != NULL){
-                MY_ENC.event_callback(e.type,ctl_d);
+                MY_ENC.event_callback(event,ctl_d);
             }
         }
         ctl_q = ctl_d;
@@ -103,7 +103,7 @@ void init_encoder(int pina,int pinb, int pin_btn,my_encoder_callback_t encoder_e
     
     ESP_ERROR_CHECK(rotary_encoder_add(&MY_ENC.re));
     MY_ENC.event_callback = encoder_event_callback;
-    /*Camera task is dedicated to run on core #1, it has high priority 7 */
+    /*Camera task is dedicated to run on core #1, it has priority 5 */
     MY_ENC.task = xTaskCreateStaticPinnedToCore(& encoder_task, (const char *) TAG, stack_size, NULL, 5, stack, &tcb,0);
     ESP_ERROR_CHECK((MY_ENC.task != NULL) ? ESP_OK : ESP_FAIL);
 }
