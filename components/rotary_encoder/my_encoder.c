@@ -86,7 +86,7 @@ void encoder_task(void *arg)
 void init_encoder(int pina,int pinb, int pin_btn,my_encoder_callback_t encoder_event_callback)
 {
     static StaticTask_t tcb;
-    static StackType_t stack[ configMINIMAL_STACK_SIZE * 8 ];
+    static StackType_t stack[ configMINIMAL_STACK_SIZE * 4 ];
     const uint32_t stack_size = ( sizeof( stack ) / sizeof( stack[ 0 ] ) );
     // Create event queue for rotary encoders
     if(MY_ENC.event_queue == NULL){

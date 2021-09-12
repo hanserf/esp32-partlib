@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <mcp4728.h>
 #include <string.h>
 #include "my_i2cdac.h"
 
@@ -24,8 +23,11 @@
 
 #define ADDR MCP4728A0_I2C_ADDR0
 static i2c_dev_t dev;
+
+#ifdef CONFIG_MCP4728_TEST
 static TaskHandle_t dac_task;
 static void dac_test_task(void *pvParameters);
+#endif /* CONFIG_MCP4728_TEST */
 
 static void wait_for_eeprom(i2c_dev_t *dev)
 {
@@ -56,11 +58,12 @@ void init_mcp4728(int sda, int scl){
     }
     #ifdef CONFIG_MCP4728_TEST
         xTaskCreate(dac_test_task, "dac_task", configMINIMAL_STACK_SIZE * 3, NULL, 4, dac_task);
-    #endif /* CONFIG_EXAMPLE_PROV_TRANSPORT_BLE */
+    #endif /* CONFIG_MCP4728_TEST */
 
     
     
 }
+#ifdef CONFIG_MCP4728_TEST
 
 static void dac_test_task(void *pvParameters)
 {
@@ -84,9 +87,13 @@ static void dac_test_task(void *pvParameters)
             i = MCP4728_MAX_VALUE;
         }
         printf("Raw DAC Value: %d\n", i);
-        ESP_ERROR_CHECK(mcp4728_write_channel_raw(&dev,0, i));
+        dac_write_channel(0,i);
         // It will be very low freq wave
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
+#endif /* CONFIG_MCP4728_TEST */
 
+void dac_write_channel(uint8_t ch,uint16_t value){
+    ESP_ERROR_CHECK(mcp4728_write_channel_raw(&dev,ch, value));
+}
