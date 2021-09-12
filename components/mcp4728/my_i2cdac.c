@@ -15,8 +15,13 @@
 #include "my_i2cdac.h"
 
 //#define CONFIG_MCP4728TEST 1
+#ifdef CONFIG_MCP4728_LIMITRANGE
+    #define VDD (double)(CONFIG_MCP4728_OUTMAX/1000)
+#else
+    #define VDD (double)(CONFIG_MCP4728_VDD/1000)
+#endif /* CONFIG_MCP4728_LIMITRANGE */
+    
 
-#define VDD 3.3
 #define ADDR MCP4728A0_I2C_ADDR0
 static i2c_dev_t dev;
 static TaskHandle_t dac_task;
@@ -49,7 +54,7 @@ void init_mcp4728(int sda, int scl){
         ESP_ERROR_CHECK(mcp4728_set_power_mode(&dev, true, MCP4728_PM_NORMAL));
         wait_for_eeprom(&dev);
     }
-    #ifdef CONFIG_MCP4728TEST
+    #ifdef CONFIG_MCP4728_TEST
         xTaskCreate(dac_test_task, "dac_task", configMINIMAL_STACK_SIZE * 3, NULL, 4, dac_task);
     #endif /* CONFIG_EXAMPLE_PROV_TRANSPORT_BLE */
 
@@ -66,12 +71,12 @@ static void dac_test_task(void *pvParameters)
 
     printf("Now let's generate the sawtooth wave in slow manner\n");
     uint16_t i = MCP4728_MAX_VALUE;
+    printf("MAX value is : %d",i);
     float vout = 0;
     while (1)
     {
         vout += 0.1;
         if (vout > VDD) vout = 0;
-        
         //printf("Vout: %.02f\n", vout);
         //ESP_ERROR_CHECK(mcp4728_set_voltage(&dev, VDD, vout, false));
         i--;

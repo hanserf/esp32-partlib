@@ -192,7 +192,7 @@ esp_err_t mcp4728_get_voltage(i2c_dev_t *dev, float vdd, bool eeprom, float *vol
     uint16_t value;
     CHECK(mcp4728_get_raw_output(dev, eeprom, &value));
 
-    *voltage = vdd / MCP4728_MAX_VALUE * value;
+    *voltage = (vdd / MCP4728_MAX_VALUE )* value;
 
     return ESP_OK;
 }

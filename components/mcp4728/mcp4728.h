@@ -28,8 +28,14 @@ extern "C" {
 #define MCP4728A1_I2C_ADDR1 0x63
 #define MCP4728A2_I2C_ADDR0 0x64
 #define MCP4728A2_I2C_ADDR1 0x65
+/*Do we use the full range of the DAC*/
+#ifdef CONFIG_MCP4728_LIMITRANGE
+    #define MCP4728_MAX_VALUE (uint16_t)(0x0fff * CONFIG_MCP4728_OUTMAX/CONFIG_MCP4728_VDD )
+#else
+    #define MCP4728_MAX_VALUE 0x0fff
+#endif /* CONFIG_MCP4728_LIMITRANGE */
+ 
 
-#define MCP4728_MAX_VALUE 0x0fff
 #define NUM_MCP4728 1
 /**
  * Power mode, see datasheet

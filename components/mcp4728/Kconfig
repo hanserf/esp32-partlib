@@ -1,0 +1,25 @@
+menu "MCP4728 DAC"
+
+	config MCP4728_VDD
+	int "Dac Supply Voltage, in millivolts"
+	default 3300
+
+	config MCP4728_OUTMAX
+	int "Dac Max output voltage, in millivolts"
+	default 3000
+	
+	config MCP4728_TEST
+		bool "Test task for stepping through DAC Full Range"
+    default n
+		help
+		Test task for stepping through DAC Full Range.
+			
+	
+	config MCP4728_LIMITRANGE
+        bool "Limit to OUTMAX or full DAC output Range"
+	default n
+        help
+        Full output Range of DAC, or limit to OUTMAX.
+		
+	
+endmenu

@@ -76,7 +76,7 @@ void encoder_task(void *arg)
         }
         if(valid){
             if(MY_ENC.event_callback != NULL){
-                MY_ENC.event_callback(event,ctl_d);
+                MY_ENC.event_callback(event,&ctl_d);
             }
         }
         ctl_q = ctl_d;
