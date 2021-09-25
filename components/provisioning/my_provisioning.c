@@ -30,7 +30,7 @@
 
 #define CONNECTED_BITS (GOT_IPV4_BIT)
 /*5 minute timeout*/
-#define WIFI_CONNECTED_TIMEOUT (60000) 
+#define WIFI_CONNECTED_TIMEOUT (300000) 
 static const char *TAG = "provisioning";
 
 /* Signal Wi-Fi events on this event-group */
@@ -44,8 +44,7 @@ static SemaphoreHandle_t wifi_sem;
 
 static void wifi_init_sta();
 static void get_device_service_name(char *service_name, size_t max);
-static void initialize_everything();
-static void initialize_application();
+
 
 static void event_handler(void* arg, esp_event_base_t event_base,
                           int event_id, void* event_data);
@@ -329,7 +328,7 @@ void setup_provisioning(){
         /* Start Wi-Fi station */
         wifi_init_sta();
     }
-    /* Wait for Wi-Fi connection. This will block indefinetely */
+    /* Wait for Wi-Fi connection. This will block for WIFI_CONNECTED_TIMEOUT/1000 [s] */
     xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_EVENT, false, true, pdMS_TO_TICKS(WIFI_CONNECTED_TIMEOUT));
     if(xSemaphoreTake(wifi_sem,0) != pdPASS){
         ESP_LOGW(TAG,"The current provisioning parameters does not seem valid. Erasing and rebooting");
