@@ -49,6 +49,7 @@ typedef struct {
 }mqtt_node_t;
 
 static struct {
+    bool running;
     esp_mqtt_client_handle_t client;
     mqtt_node_t my_endpoints[TOPIC_NUM_TOPICS];
 }my_mqtt;
@@ -83,6 +84,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     int msg_id;
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
+        my_mqtt.running = true;
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         if(do_mqtt_init_from_top != NULL){
             do_mqtt_init_from_top();
@@ -94,15 +96,16 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         //esp_mqtt_client_subscribe(client,"/topic/timestamp",1);
         break;
     case MQTT_EVENT_DISCONNECTED:
+        my_mqtt.running = false;
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
         do_mqtt_init_from_top=NULL;
         break;
 
     case MQTT_EVENT_SUBSCRIBED:
-        ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d, TOPIC=%.*s\r\n", event->msg_id, event->topic_len, event->topic);
+        ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d, TOPIC=%.*s", event->msg_id, event->topic_len, event->topic);
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
-        ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d, TOPIC=%.*s\r\n", event->msg_id, event->topic_len, event->topic);
+        ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d, TOPIC=%.*s", event->msg_id, event->topic_len, event->topic);
         break;
     case MQTT_EVENT_PUBLISHED:
         ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d, TOPIC=%.*s", event->msg_id,event->topic_len, event->topic);
@@ -149,6 +152,7 @@ static void parse_mqtt_topic(esp_mqtt_event_handle_t event){
 static void mqtt_app_start(void)
 {
     int i = 0;
+    my_mqtt.running = false;
     esp_mqtt_client_config_t mqtt_cfg = {
         .uri = CONFIG_BROKER_URL,
     };
@@ -182,6 +186,7 @@ static void mqtt_app_start(void)
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(client);
     my_mqtt.client = client;
+    my_mqtt.running = false;
     for(i = 0; i < TOPIC_NUM_TOPICS;i++){
         my_mqtt.my_endpoints[i].mutex = xSemaphoreCreateMutex();    
         ESP_ERROR_CHECK((my_mqtt.my_endpoints[i].mutex != NULL)? ESP_OK: ESP_OK);
@@ -211,7 +216,7 @@ void mqtt_init(mqtt_topics_setup_function_t top_level_init_fun)
 
 
 void register_mqtt_topic(my_mqtt_topics_t enum_topic, char *topic_string, int qos,mqtt_topics_sub_callback sub_cb_fun){
-    char * p;
+    char *p;
     if(enum_topic<TOPIC_NUM_TOPICS){
         p = my_mqtt.my_endpoints[enum_topic].mqtt_node.topic;
         my_mqtt.my_endpoints[enum_topic].mqtt_node.qos = qos;
@@ -227,12 +232,18 @@ void register_mqtt_topic(my_mqtt_topics_t enum_topic, char *topic_string, int qo
 
 
 void publish_mqtt_topic(my_mqtt_topics_t topic,char *buffer,size_t len){
-    ESP_ERROR_CHECK((topic<TOPIC_NUM_TOPICS)?ESP_OK:ESP_FAIL);
-    int msg_id = 0;
-    if(xSemaphoreTake(my_mqtt.my_endpoints[topic].mutex,portMAX_DELAY)==pdPASS){
-        msg_id = esp_mqtt_client_publish(my_mqtt.client, my_mqtt.my_endpoints[topic].mqtt_node.topic, buffer, len, my_mqtt.my_endpoints[topic].mqtt_node.qos, 0);
-        ESP_LOGI(TAG, "MSG_ID = %d, MSG:\n%s",msg_id,buffer);
-        ESP_ERROR_CHECK((xSemaphoreGive(my_mqtt.my_endpoints[topic].mutex)==pdPASS)?ESP_OK:ESP_FAIL);
+    char * p = my_mqtt.my_endpoints[topic].mqtt_node.topic;
+    ESP_LOGI(TAG,"TOPIC:%s",p);
+    ESP_LOGI(TAG,"DATA:%s",buffer);
+    
+    if(my_mqtt.running){
+        ESP_ERROR_CHECK((topic<TOPIC_NUM_TOPICS)?ESP_OK:ESP_FAIL);
+        int msg_id = 0;
+        if(xSemaphoreTake(my_mqtt.my_endpoints[topic].mutex,portMAX_DELAY)==pdPASS){
+            msg_id = esp_mqtt_client_publish(my_mqtt.client, p, buffer, len, my_mqtt.my_endpoints[topic].mqtt_node.qos, 0);
+            ESP_LOGI(TAG, "MSG_ID = %d, MSG:%s\n",msg_id,buffer);
+            ESP_ERROR_CHECK((xSemaphoreGive(my_mqtt.my_endpoints[topic].mutex)==pdPASS)?ESP_OK:ESP_FAIL);
+        }
     }
 }
 
