@@ -81,7 +81,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
     ESP_ERROR_CHECK((my_mqtt.client == event->client)?ESP_OK : ESP_FAIL);
-    int msg_id;
+    int i;
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
         my_mqtt.running = true;
@@ -92,12 +92,16 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         else{
             ESP_LOGW(TAG,"No top level init function defined....");
         }
-        /* Subscribe to topics */ 
-        //esp_mqtt_client_subscribe(client,"/topic/timestamp",1);
         break;
     case MQTT_EVENT_DISCONNECTED:
         my_mqtt.running = false;
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        for(i=0;i<TOPIC_NUM_TOPICS;i++){
+            if(my_mqtt.my_endpoints[i].mqtt_node.sub_callback != NULL){
+                ESP_LOGI(TAG,"SUBSCRIBING TO TOPIC [%s]",my_mqtt.my_endpoints[i].mqtt_node.topic);
+                esp_mqtt_client_unsubscribe(my_mqtt.client,my_mqtt.my_endpoints[i].mqtt_node.topic);
+            }
+        }
         do_mqtt_init_from_top=NULL;
         break;
 
@@ -135,8 +139,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
 static void parse_mqtt_topic(esp_mqtt_event_handle_t event){
     int i = 0;
+    ESP_LOGD(TAG,"Parsing Received : [%s]",event->topic);
     for(i=0;i<TOPIC_NUM_TOPICS;i++){
         /* Match current topic to one of our registered topics */
+        ESP_LOGD(TAG,"Against known topics : [%s]",my_mqtt.my_endpoints[i].mqtt_node.topic);
         if (!strncmp(event->topic, my_mqtt.my_endpoints[i].mqtt_node.topic, event->topic_len)){
             /*HIT! Is this something we subscribe to?*/
             if(my_mqtt.my_endpoints[i].mqtt_node.sub_callback != NULL){
@@ -219,13 +225,15 @@ void register_mqtt_topic(my_mqtt_topics_t enum_topic, char *topic_string, int qo
     char *p;
     if(enum_topic<TOPIC_NUM_TOPICS){
         p = my_mqtt.my_endpoints[enum_topic].mqtt_node.topic;
-        my_mqtt.my_endpoints[enum_topic].mqtt_node.qos = qos;
-        if(sub_cb_fun != NULL){
-            my_mqtt.my_endpoints->mqtt_node.sub_callback = sub_cb_fun;
-        }
         p += sprintf(p,"%s",topic_string);
         *p++ = 0;
-        ESP_LOGI(TAG,"Topic:[%s] registered",my_mqtt.my_endpoints->mqtt_node.topic);
+        my_mqtt.my_endpoints[enum_topic].mqtt_node.qos = qos;
+        if(sub_cb_fun != NULL){
+            my_mqtt.my_endpoints[enum_topic].mqtt_node.sub_callback = sub_cb_fun;
+            esp_mqtt_client_subscribe(my_mqtt.client,my_mqtt.my_endpoints[enum_topic].mqtt_node.topic,1);
+
+        }
+        ESP_LOGI(TAG,"Topic:[%s] registered",my_mqtt.my_endpoints[enum_topic].mqtt_node.topic);
     
     }
 }
