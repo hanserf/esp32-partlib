@@ -51,6 +51,7 @@ typedef struct {
 static struct {
     bool running;
     esp_mqtt_client_handle_t client;
+    mqtt_is_up_function_t if_updown;
     mqtt_node_t my_endpoints[TOPIC_NUM_TOPICS];
 }my_mqtt;
 
@@ -85,6 +86,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
         my_mqtt.running = true;
+        if(my_mqtt.if_updown != NULL){
+            my_mqtt.if_updown(true);
+        
+        } 
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         if(do_mqtt_init_from_top != NULL){
             do_mqtt_init_from_top();
@@ -95,6 +100,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
     case MQTT_EVENT_DISCONNECTED:
         my_mqtt.running = false;
+        if(my_mqtt.if_updown != NULL){
+            my_mqtt.if_updown(false);
+        
+        } 
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
         for(i=0;i<TOPIC_NUM_TOPICS;i++){
             if(my_mqtt.my_endpoints[i].mqtt_node.sub_callback != NULL){
@@ -200,7 +209,7 @@ static void mqtt_app_start(void)
     }
 }
 
-void mqtt_init(mqtt_topics_setup_function_t top_level_init_fun)
+void mqtt_init(mqtt_topics_setup_function_t top_level_init_fun,mqtt_is_up_function_t is_updown_cb)
 {
     ESP_LOGI(TAG, "[APP] Startup..");
     ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
@@ -216,6 +225,9 @@ void mqtt_init(mqtt_topics_setup_function_t top_level_init_fun)
     if(top_level_init_fun != NULL){
         do_mqtt_init_from_top = top_level_init_fun;
         ESP_ERROR_CHECK((do_mqtt_init_from_top != NULL)?ESP_OK:ESP_FAIL);
+    }
+    if(is_updown_cb != NULL){
+        my_mqtt.if_updown = is_updown_cb;
     }
     mqtt_app_start();
 }
@@ -241,9 +253,6 @@ void register_mqtt_topic(my_mqtt_topics_t enum_topic, char *topic_string, int qo
 
 void publish_mqtt_topic(my_mqtt_topics_t topic,char *buffer,size_t len){
     char * p = my_mqtt.my_endpoints[topic].mqtt_node.topic;
-    ESP_LOGI(TAG,"TOPIC:%s",p);
-    ESP_LOGI(TAG,"DATA:%s",buffer);
-    
     if(my_mqtt.running){
         ESP_ERROR_CHECK((topic<TOPIC_NUM_TOPICS)?ESP_OK:ESP_FAIL);
         int msg_id = 0;
