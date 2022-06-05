@@ -5,6 +5,7 @@ typedef enum {
     /* EDIT These based on application */
     TOPIC_PUB_DIM_FACTOR,
     TOPIC_PUB_K1,
+    TOPIC_SUB_K1,
     TOPIC_SUB_TIMESTAMP,
     TOPIC_SUB_DIM,
     /* DO NOT EDIT THIS LINE. THIS MUST BE LAST!*/

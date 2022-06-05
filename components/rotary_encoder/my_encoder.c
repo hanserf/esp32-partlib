@@ -18,7 +18,11 @@ static struct {
     QueueHandle_t event_queue;
     rotary_encoder_t re;
     TaskHandle_t task;
-
+    /*Store current state as local global.
+    This may be changed by mqtt/rs485/etc */
+    int32_t ctl_d;
+    int32_t ctl_q;
+    
 }MY_ENC;
 
 static inline void __set_bit(int32_t *x, int bitNum) {
@@ -34,8 +38,6 @@ void encoder_task(void *arg)
 {
     
     rotary_encoder_event_t e;
-    int32_t ctl_d = 0;
-    int32_t ctl_q = 0;
     my_encoder_event_t event;
     bool valid; 
     while (1)
@@ -61,14 +63,14 @@ void encoder_task(void *arg)
                 event = MYENC_BTN_LONG;
                 break;
             case RE_ET_CHANGED:
-                ctl_d += e.diff;
-                if(ctl_d>ctl_q){
+                MY_ENC.ctl_d += e.diff;
+                if(MY_ENC.ctl_d>MY_ENC.ctl_q){
                     event = MYENC_POS_INC;
                 }
                 else{
                     event = MYENC_POS_DEC;
                 }
-                ESP_LOGV(TAG, "Value = %d", ctl_d);
+                ESP_LOGV(TAG, "Value = %d", MY_ENC.ctl_d);
                 break;
             default:
                 valid = false;
@@ -76,10 +78,10 @@ void encoder_task(void *arg)
         }
         if(valid){
             if(MY_ENC.event_callback != NULL){
-                MY_ENC.event_callback(event,&ctl_d);
+                MY_ENC.event_callback(event,&MY_ENC.ctl_d);
             }
         }
-        ctl_q = ctl_d;
+        MY_ENC.ctl_q = MY_ENC.ctl_d;
     }
 }
 
@@ -100,7 +102,8 @@ void init_encoder(int pina,int pinb, int pin_btn,my_encoder_callback_t encoder_e
     MY_ENC.re.pin_a = pina;
     MY_ENC.re.pin_b = pinb;
     MY_ENC.re.pin_btn = pin_btn;
-    
+    MY_ENC.ctl_d = 0;
+    MY_ENC.ctl_q = 0;
     ESP_ERROR_CHECK(rotary_encoder_add(&MY_ENC.re));
     MY_ENC.event_callback = encoder_event_callback;
     /*Camera task is dedicated to run on core #1, it has priority 5 */
@@ -111,4 +114,9 @@ void init_encoder(int pina,int pinb, int pin_btn,my_encoder_callback_t encoder_e
 void destroy_encoder(){
     vTaskDelete(MY_ENC.task);
     ESP_ERROR_CHECK(rotary_encoder_remove(&MY_ENC.re));
+}
+
+void my_encoder_set_current_encreg(int32_t pos){
+    MY_ENC.ctl_d = pos;
+    MY_ENC.ctl_q = pos;
 }
